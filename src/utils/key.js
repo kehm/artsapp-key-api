@@ -61,7 +61,11 @@ const setLanguageInfo = (key, keys, languages, keyElement) => {
 const getMediaObjects = (media) => media.map((element) => ({
     id: element,
     mediaElement: [
-        { url: `${process.env.API_URL}/media/thumbnails/${element}` },
+        {
+            url: `${process.env.API_URL}/media/thumbnails/${element}`,
+            width: 128,
+            height: 128,
+        },
         { url: `${process.env.API_URL}/media/${element}` },
     ],
 }));
@@ -137,12 +141,7 @@ export const getKeys = async () => {
             const keyColl = collections.filter((collection) => collection.keyId === element.id);
             key.collections = keyColl.map((collection) => collection.collectionId);
             const keyMedia = media.filter((medium) => medium.keyId === element.id);
-            key.media = keyMedia.map((medium) => ({
-                id: medium.mediaId,
-                url: `${process.env.API_URL}/media/thumbnails/${medium.mediaId}`,
-                width: 128,
-                height: 128,
-            }));
+            key.media = getMediaObjects(keyMedia.map((medium) => medium.mediaId));
             if (key.key_group_id) key = setKeyClassification(key, groups);
             delete key.key_group_id;
             key = setLanguageInfo(key, keys, languages, element);
@@ -256,7 +255,7 @@ export const getKeyInfo = async (id, languageCode) => {
  */
 const getRevisionContent = async (id, status) => {
     const revision = await Revision.findOne({
-        attributes: ['content', 'media'],
+        attributes: ['content', 'media', 'mode'],
         where: status ? {
             id,
             status,
@@ -270,6 +269,7 @@ const getRevisionContent = async (id, status) => {
             taxa: revision.content.taxa,
             characters: revision.content.characters,
             statements: revision.content.statements,
+            mode: revision.mode,
         };
         if (revision.media && revision.media.mediaElements) {
             content.mediaElements = await getMediaElements(revision.media.mediaElements);
@@ -320,6 +320,7 @@ export const getKey = async (keyId, revisionId) => {
         key.characters = revision.characters;
         key.statements = revision.statements;
         key.mediaElements = revision.mediaElements;
+        key.mode = revision.mode;
     }
     return key;
 };
